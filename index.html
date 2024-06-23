@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheProfffesorr</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        video {
+            width: 80%;
+            max-width: 800px;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+        #qualitySelect {
+            margin-top: 10px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://t.me/Theprofffesorr"><h1>TheProfffesorr</h1></a>
+    <video id="video" controls></video>
+    <br>
+    <label for="qualitySelect">Select Quality: </label>
+    <select id="qualitySelect"></select>
+    <p id="errorMessage" style="color: red;"></p>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const video = document.getElementById('video');
+            const qualitySelect = document.getElementById('qualitySelect');
+            const errorMessage = document.getElementById('errorMessage');
+            const videoSrc = 'https://prod-ent-live-gm.jiocinema.com/hls/live/2105483/hd_akamai_androidmob_avc_24x7_bbhindi_day01/master.m3u8';  // Replace with your M3U8 link
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoSrc);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+
+                    // Populate quality levels
+                    const levels = hls.levels;
+                    levels.forEach((level, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.text = `${level.height}p`;
+                        qualitySelect.appendChild(option);
+                    });
+
+                    // Handle quality change
+                    qualitySelect.addEventListener('change', (event) => {
+                        const selectedLevel = parseInt(event.target.value);
+                        hls.currentLevel = selectedLevel;
+                    });
+                });
+
+                hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
+                    qualitySelect.value = data.level;
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    const errorType = data.type;
+                    const errorDetails = data.details;
+                    const errorFatal = data.fatal;
+
+                    console.error(`Error Type: ${errorType}, Details: ${errorDetails}, Fatal: ${errorFatal}`);
+
+                    if (errorFatal) {
+                        switch (errorType) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                errorMessage.textContent = 'Network error occurred. Please check your connection.';
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                errorMessage.textContent = 'Media error occurred. Attempting to recover...';
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                errorMessage.textContent = 'An unrecoverable error occurred. Please try again later.';
+                                hls.destroy();
+                                break;
+                        }
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoSrc;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                });
+            } else {
+                errorMessage.textContent = 'This browser does not support HLS.';
+            }
+        });
+    </script>
+</body>
+</html>
